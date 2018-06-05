@@ -45,11 +45,13 @@ class BlockFacebook extends Module
         $this->tab = 'front_office_features';
         $this->version = '2.0.0';
         $this->author = 'thirty bees';
+        $this->need_instance = 0;
 
         $this->bootstrap = true;
         parent::__construct();
         $this->displayName = $this->l('Block Facebook');
         $this->description = $this->l('Displays a block for subscribing to your Facebook Page.');
+        $this->tb_versions_compliancy = '> 1.0.0';
         $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.99.99');
     }
 
