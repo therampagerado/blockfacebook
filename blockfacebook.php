@@ -37,6 +37,8 @@ class BlockFacebook extends Module
     /**
      * BlockFacebook constructor.
      *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      * @since 1.0.0
      */
     public function __construct()
@@ -60,6 +62,9 @@ class BlockFacebook extends Module
      * Install the module
      *
      * @return bool Indicates whether the module was successfully installed
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function install()
     {
@@ -73,6 +78,9 @@ class BlockFacebook extends Module
      * Uninstall the module
      *
      * @return bool Indicates whether the module was successfully uninstalled
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function uninstall()
     {
@@ -82,6 +90,10 @@ class BlockFacebook extends Module
 
     /**
      * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function getContent()
     {
@@ -109,6 +121,10 @@ class BlockFacebook extends Module
 
     /**
      * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function renderForm()
     {
@@ -154,6 +170,8 @@ class BlockFacebook extends Module
 
     /**
      * @return array
+     *
+     * @throws PrestaShopException
      */
     public function getConfigFieldsValues()
     {
@@ -164,6 +182,10 @@ class BlockFacebook extends Module
 
     /**
      * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayLeftColumn()
     {
@@ -175,7 +197,7 @@ class BlockFacebook extends Module
     }
 
     /**
-     *
+     * @return void
      */
     protected function _assignMedia()
     {
@@ -185,6 +207,10 @@ class BlockFacebook extends Module
 
     /**
      * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayHome()
     {
@@ -201,6 +227,10 @@ class BlockFacebook extends Module
 
     /**
      * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayRightColumn()
     {
@@ -212,7 +242,7 @@ class BlockFacebook extends Module
     }
 
     /**
-     *
+     * @throws PrestaShopException
      */
     public function hookHeader()
     {
