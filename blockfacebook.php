@@ -34,6 +34,8 @@ if (!defined('_TB_VERSION_')) {
  */
 class BlockFacebook extends Module
 {
+    const CONFIG_KEY = 'blockfacebook_url';
+
     /**
      * BlockFacebook constructor.
      *
@@ -55,7 +57,7 @@ class BlockFacebook extends Module
         $this->description = $this->l('Displays a block for subscribing to your Facebook Page.');
         $this->tb_versions_compliancy = '> 1.0.0';
         $this->tb_min_version = '1.0.0';
-        $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.99.99');
+        $this->ps_versions_compliancy = ['min' => '1.6', 'max' => '1.6.99.99'];
     }
 
     /**
@@ -68,10 +70,11 @@ class BlockFacebook extends Module
      */
     public function install()
     {
-        return parent::install() &&
-            Configuration::updateValue('blockfacebook_url', 'https://www.facebook.com/thirtybees') &&
-            $this->registerHook('displayHome') &&
-            $this->registerHook('displayHeader');
+        return (
+            parent::install() &&
+            Configuration::updateValue(static::CONFIG_KEY, 'https://www.facebook.com/thirtybees') &&
+            $this->registerHook('displayHome')
+        );
     }
 
     /**
@@ -85,7 +88,7 @@ class BlockFacebook extends Module
     public function uninstall()
     {
         // Delete configuration
-        return Configuration::deleteByName('blockfacebook_url') && parent::uninstall();
+        return Configuration::deleteByName(static::CONFIG_KEY) && parent::uninstall();
     }
 
     /**
@@ -100,18 +103,13 @@ class BlockFacebook extends Module
         $html = '';
         // If we try to update the settings
         if (Tools::isSubmit('submitModule')) {
-            Configuration::updateValue('blockfacebook_url', Tools::getValue('blockfacebook_url'));
+            Configuration::updateValue(static::CONFIG_KEY, Tools::getValue(static::CONFIG_KEY));
             $html .= $this->displayConfirmation($this->l('Configuration updated'));
-            $this->_clearCache('blockfacebook.tpl');
             Tools::redirectAdmin('index.php?tab=AdminModules&configure='.$this->name.'&token='.Tools::getAdminTokenLite('AdminModules'));
         }
 
         $html .= $this->renderForm();
-        $facebookurl = Configuration::get('blockfacebook_url');
-        if (!strstr($facebookurl, "facebook.com")) {
-            $facebookurl = "https://www.facebook.com/".$facebookurl;
-        }
-        $this->context->smarty->assign('facebookurl', $facebookurl);
+        $this->context->smarty->assign('facebookurl', $this->getFacebookUrl());
         $this->context->smarty->assign('facebook_js_url', $this->_path.'blockfacebook.js');
         $this->context->smarty->assign('facebook_css_url', $this->_path.'css/blockfacebook.css');
         $html .= $this->context->smarty->fetch($this->local_path.'views/admin/_configure/preview.tpl');
@@ -128,24 +126,27 @@ class BlockFacebook extends Module
      */
     public function renderForm()
     {
-        $formFields = array(
-            'form' => array(
-                'legend' => array(
+        $formFields = [
+            'form' => [
+                'legend' => [
                     'title' => $this->l('Settings'),
                     'icon'  => 'icon-cogs',
-                ),
-                'input'  => array(
-                    array(
+                ],
+                'input'  => [
+                    [
                         'type'  => 'text',
                         'label' => $this->l('Facebook link (full URL is required)'),
-                        'name'  => 'blockfacebook_url',
-                    ),
-                ),
-                'submit' => array(
+                        'name'  => static::CONFIG_KEY,
+                    ],
+                ],
+                'submit' => [
                     'title' => $this->l('Save'),
-                ),
-            ),
-        );
+                ],
+            ],
+        ];
+
+        /** @var AdminController $controller */
+        $controller = $this->context->controller;
 
         $helper = new HelperForm();
         $helper->show_toolbar = false;
@@ -158,53 +159,20 @@ class BlockFacebook extends Module
         $helper->submit_action = 'submitModule';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->tpl_vars = array(
-            'fields_value' => $this->getConfigFieldsValues(),
-            'languages'    => $this->context->controller->getLanguages(),
+        $helper->tpl_vars = [
+            'fields_value' => [
+                static::CONFIG_KEY => $this->getFacebookUrl()
+            ],
+            'languages'    => $controller->getLanguages(),
             'id_language'  => $this->context->language->id,
-        );
+        ];
 
-        return $helper->generateForm(array($formFields));
+        return $helper->generateForm([$formFields]);
     }
 
     /**
-     * @return array
+     * Hook handler
      *
-     * @throws PrestaShopException
-     */
-    public function getConfigFieldsValues()
-    {
-        return array(
-            'blockfacebook_url' => Tools::getValue('blockfacebook_url', Configuration::get('blockfacebook_url')),
-        );
-    }
-
-    /**
-     * @return string
-     *
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     * @throws SmartyException
-     */
-    public function hookDisplayLeftColumn()
-    {
-        if ($this->page_name !== 'index') {
-            $this->_assignMedia();
-        }
-
-        return $this->hookDisplayHome();
-    }
-
-    /**
-     * @return void
-     */
-    protected function _assignMedia()
-    {
-        $this->context->controller->addCss(($this->_path).'css/blockfacebook.css');
-        $this->context->controller->addJS(($this->_path).'blockfacebook.js');
-    }
-
-    /**
      * @return string
      *
      * @throws PrestaShopDatabaseException
@@ -213,18 +181,22 @@ class BlockFacebook extends Module
      */
     public function hookDisplayHome()
     {
-        if (!$this->isCached('blockfacebook.tpl', $this->getCacheId())) {
-            $facebookurl = Configuration::get('blockfacebook_url');
-            if (!strstr($facebookurl, 'facebook.com')) {
-                $facebookurl = 'https://www.facebook.com/'.$facebookurl;
-            }
-            $this->context->smarty->assign('facebookurl', $facebookurl);
+        $facebookUrl = $this->getFacebookUrl();
+        if ($facebookUrl) {
+            $this->context->controller->addCss(($this->_path).'css/blockfacebook.css');
+            $this->context->controller->addJS(($this->_path).'blockfacebook.js');
+            $this->context->smarty->assign('facebookurl', $facebookUrl);
+            return $this->display(__FILE__, 'blockfacebook.tpl');
+        } else {
+            return null;
         }
 
-        return $this->display(__FILE__, 'blockfacebook.tpl', $this->getCacheId());
     }
 
     /**
+     * Hook handler
+     * Not used by default, exists for transplanting
+     *
      * @return string
      *
      * @throws PrestaShopDatabaseException
@@ -233,21 +205,41 @@ class BlockFacebook extends Module
      */
     public function hookDisplayRightColumn()
     {
-        if ($this->page_name !== 'index') {
-            $this->_assignMedia();
-        }
-
         return $this->hookDisplayHome();
     }
 
     /**
+     *
+     * Hook handler
+     * Not used by default, exists for transplanting
+     *
+     * @return string
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
+     */
+    public function hookDisplayLeftColumn()
+    {
+        return $this->hookDisplayHome();
+    }
+
+    /**
+     * Returns configured facebook url
+     *
+     * @return string
      * @throws PrestaShopException
      */
-    public function hookHeader()
+    public function getFacebookUrl()
     {
-        $this->page_name = Dispatcher::getInstance()->getController();
-        if ($this->page_name == 'index') {
-            $this->_assignMedia();
+        $facebookUrl = Configuration::get(static::CONFIG_KEY);
+        if ($facebookUrl) {
+            if (! strstr($facebookUrl, 'facebook.com')) {
+                return 'https://www.facebook.com/' . $facebookUrl;
+            } else {
+                return $facebookUrl;
+            }
         }
+        return '';
     }
 }
